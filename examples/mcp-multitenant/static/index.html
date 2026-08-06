@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TaskFlow MCP マルチテナント Playground</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e3e6ea; --text:#1f2430; --sub:#6b7280;
+          --accent:#2563eb; --ok:#047857; --ng:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+         background:var(--bg); color:var(--text); }
+  header { background:var(--card); border-bottom:1px solid var(--line);
+           padding:10px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  header .spec { font-size:12px; color:var(--sub); }
+  .users { display:flex; gap:6px; }
+  .users button { padding:6px 14px; border:1px solid var(--line); border-radius:20px;
+                  background:var(--card); cursor:pointer; font-size:13px; }
+  .users button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  main { display:grid; grid-template-columns:260px 1fr; gap:16px; padding:16px 20px;
+         max-width:1200px; margin:0 auto; }
+  @media (max-width:800px){ main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .card h2 { font-size:13px; margin:0 0 10px; color:var(--sub); font-weight:600;
+             text-transform:uppercase; letter-spacing:.04em; }
+  .glist { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .glist button { text-align:left; padding:8px 10px; border:1px solid var(--line);
+                  border-radius:8px; background:#fafbfc; cursor:pointer; font-size:13px; }
+  .glist button.sel { border-color:var(--accent); background:#eef4ff; }
+  .glist .role { color:var(--sub); font-size:11px; }
+  input, select { padding:7px 9px; border:1px solid var(--line); border-radius:7px;
+                  font-size:13px; background:#fff; color:var(--text); }
+  .row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .row input { flex:1; min-width:80px; }
+  button.act { padding:7px 12px; border:none; border-radius:7px; background:var(--accent);
+               color:#fff; cursor:pointer; font-size:13px; white-space:nowrap; }
+  button.act.danger { background:var(--ng); }
+  button.act.ghost { background:#eef1f5; color:var(--text); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--sub); font-weight:600; font-size:12px; }
+  .prio-high { color:var(--ng); font-weight:600; }
+  .prio-medium { color:#b45309; }
+  .prio-low { color:var(--sub); }
+  #log { display:flex; flex-direction:column-reverse; gap:8px; max-height:340px;
+         overflow-y:auto; }
+  .entry { border:1px solid var(--line); border-left-width:4px; border-radius:6px;
+           padding:8px 10px; font-size:12.5px; background:#fafbfc; }
+  .entry.ok { border-left-color:var(--ok); }
+  .entry.ng { border-left-color:var(--ng); }
+  .entry .head { display:flex; gap:8px; flex-wrap:wrap; align-items:baseline; }
+  .entry .tool { font-family:ui-monospace,monospace; font-weight:600; }
+  .entry .who { color:var(--accent); }
+  .entry .res { margin-top:4px; }
+  .entry .res.ng { color:var(--ng); font-weight:600; }
+  .entry details { margin-top:4px; }
+  .entry summary { cursor:pointer; color:var(--sub); font-size:11px; }
+  .entry pre { margin:4px 0 0; padding:8px; background:#0f172a; color:#d7e0ee;
+               border-radius:6px; overflow-x:auto; font-size:11px; line-height:1.5; }
+  .hint { font-size:12px; color:var(--sub); margin-top:8px; line-height:1.6; }
+  .full { grid-column:1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TaskFlow MCP Playground</h1>
+  <span class="spec">spec 2026-07-28 / stateless — ブラウザから MCP を直接呼んでいます</span>
+  <div class="users" id="users"></div>
+</header>
+
+<main>
+  <div>
+    <div class="card">
+      <h2>所属グループ</h2>
+      <div class="glist" id="groups"></div>
+      <div class="row">
+        <input id="gname" placeholder="新しいグループ名">
+        <button id="btn-create" class="act" onclick="createGroup()">作成</button>
+      </div>
+      <div class="row">
+        <input id="invitee" placeholder="招待するユーザー名">
+        <button id="btn-invite" class="act ghost" onclick="invite()">招待 (owner のみ)</button>
+      </div>
+      <div class="row">
+        <input id="rawgid" placeholder="グループID を直接指定">
+        <button id="btn-peek" class="act ghost" onclick="peek()">覗いてみる</button>
+      </div>
+      <p class="hint">「覗いてみる」に他ユーザーのグループ ID を入れると、
+        未招待ならサーバーに拒否される様子がログで確認できます。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>タスク <span id="gtitle" style="text-transform:none"></span></h2>
+    <table>
+      <thead><tr><th>ID</th><th>タイトル</th><th>優先度</th><th>作成者</th><th></th></tr></thead>
+      <tbody id="tasks"><tr><td colspan="5" class="hint">グループを選択してください</td></tr></tbody>
+    </table>
+    <div class="row">
+      <input id="ttitle" placeholder="新しいタスク">
+      <select id="tprio">
+        <option value="high">high</option>
+        <option value="medium" selected>medium</option>
+        <option value="low">low</option>
+      </select>
+      <button id="btn-add" class="act" onclick="addTask()">追加</button>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h2>操作ログ(MCP tools/call の生の記録・新しい順)</h2>
+    <div id="log"></div>
+  </div>
+</main>
+
+<script>
+const USERS = ["alice", "bob", "carol"];
+let user = "alice";
+let selectedGroup = null;
+let seq = 0;
+
+async function mcpCall(tool, args) {
+  const req = {
+    jsonrpc: "2.0", id: ++seq, method: "tools/call",
+    params: {
+      name: tool, arguments: args,
+      _meta: {
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {}
+      }
+    }
+  };
+  const res = await fetch("/mcp", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/event-stream",
+      "MCP-Protocol-Version": "2026-07-28",
+      "MCP-Method": "tools/call",
+      "MCP-Name": tool,
+      "Authorization": "Bearer token-" + user
+    },
+    body: JSON.stringify(req)
+  });
+  const json = res.status === 401
+    ? { error: { message: "HTTP 401 Unauthorized(トークン不正)" } }
+    : await res.json();
+
+  let ok, display;
+  if (json.error) { ok = false; display = json.error.message; }
+  else if (json.result.isError) { ok = false; display = json.result.content[0].text; }
+  else {
+    ok = true;
+    const sc = json.result.structuredContent;
+    if (sc && "result" in sc && Object.keys(sc).length === 1) display = sc.result;
+    else if (sc) display = sc;
+    else { try { display = JSON.parse(json.result.content[0].text); }
+           catch { display = json.result.content.map(c => c.text); } }
+  }
+  logEntry(ok, tool, args, display, req, json);
+  return { ok, value: display };
+}
+
+function logEntry(ok, tool, args, display, req, resJson) {
+  const div = document.createElement("div");
+  div.className = "entry " + (ok ? "ok" : "ng");
+  div.innerHTML =
+    `<div class="head"><span class="who">${user}</span>` +
+    `<span class="tool">${tool}</span>` +
+    `<span>${JSON.stringify(args)}</span></div>` +
+    `<div class="res ${ok ? "" : "ng"}">${ok ? "✔ " : "✘ DENIED: "}` +
+    `${escapeHtml(typeof display === "string" ? display : JSON.stringify(display))}</div>` +
+    `<details><summary>生の JSON-RPC を見る</summary>` +
+    `<pre>→ ${escapeHtml(JSON.stringify(req, null, 2))}\n\n← ${escapeHtml(JSON.stringify(resJson, null, 2))}</pre></details>`;
+  document.getElementById("log").appendChild(div);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function renderUsers() {
+  document.getElementById("users").innerHTML = USERS.map(u =>
+    `<button class="${u === user ? "active" : ""}" onclick="switchUser('${u}')">${u}</button>`).join("");
+}
+
+async function switchUser(u) {
+  user = u; selectedGroup = null;
+  renderUsers();
+  await refreshGroups();
+  renderTasks([]);
+}
+
+async function refreshGroups() {
+  const r = await mcpCall("list_my_groups", {});
+  const groups = r.ok ? r.value : [];
+  document.getElementById("groups").innerHTML = groups.length
+    ? groups.map(g =>
+        `<button class="${selectedGroup === g.group_id ? "sel" : ""}" onclick="selectGroup('${g.group_id}','${escapeHtml(g.name)}')">` +
+        `#${g.group_id} ${escapeHtml(g.name)} <span class="role">(${g.role})</span></button>`).join("")
+    : `<span class="hint">所属グループはありません。作成するか招待してもらってください。</span>`;
+}
+
+async function selectGroup(gid, name) {
+  selectedGroup = gid;
+  document.getElementById("gtitle").textContent = `— #${gid} ${name}`;
+  await refreshGroups();
+  await refreshTasks();
+}
+
+async function refreshTasks() {
+  if (!selectedGroup) return;
+  const r = await mcpCall("list_tasks", { group_id: selectedGroup });
+  renderTasks(r.ok ? r.value : []);
+}
+
+function renderTasks(tasks) {
+  const tb = document.getElementById("tasks");
+  if (!tasks.length) {
+    tb.innerHTML = `<tr><td colspan="5" class="hint">${selectedGroup ? "タスクはありません" : "グループを選択してください"}</td></tr>`;
+    return;
+  }
+  tb.innerHTML = tasks.map(t =>
+    `<tr><td>${t.task_id}</td><td>${escapeHtml(t.title)}</td>` +
+    `<td><select onchange="changePrio('${t.task_id}', this.value)">` +
+    ["high", "medium", "low"].map(p =>
+      `<option value="${p}" ${p === t.priority ? "selected" : ""}>${p}</option>`).join("") +
+    `</select></td>` +
+    `<td>${escapeHtml(t.created_by)}</td>` +
+    `<td><button class="act danger" onclick="delTask('${t.task_id}')">削除 (owner)</button></td></tr>`).join("");
+}
+
+async function createGroup() {
+  const name = document.getElementById("gname").value.trim();
+  if (!name) return;
+  document.getElementById("gname").value = "";
+  const r = await mcpCall("create_group", { name });
+  if (r.ok) await selectGroup(r.value.group_id, r.value.name);
+}
+
+async function invite() {
+  if (!selectedGroup) return alert("先にグループを選択してください");
+  const u = document.getElementById("invitee").value.trim();
+  if (!u) return;
+  document.getElementById("invitee").value = "";
+  await mcpCall("invite_user", { group_id: selectedGroup, username: u });
+}
+
+async function peek() {
+  const gid = document.getElementById("rawgid").value.trim();
+  if (!gid) return;
+  const r = await mcpCall("list_tasks", { group_id: gid });
+  if (r.ok) { selectedGroup = gid;
+              document.getElementById("gtitle").textContent = `— #${gid}(直接指定)`;
+              renderTasks(r.value); }
+}
+
+async function addTask() {
+  if (!selectedGroup) return alert("先にグループを選択してください");
+  const title = document.getElementById("ttitle").value.trim();
+  if (!title) return;
+  document.getElementById("ttitle").value = "";
+  await mcpCall("add_task", { group_id: selectedGroup, title,
+                              priority: document.getElementById("tprio").value });
+  await refreshTasks();
+}
+
+async function changePrio(tid, prio) {
+  await mcpCall("update_task", { group_id: selectedGroup, task_id: tid, priority: prio });
+  await refreshTasks();
+}
+
+async function delTask(tid) {
+  await mcpCall("delete_task", { group_id: selectedGroup, task_id: tid });
+  await refreshTasks();
+}
+
+renderUsers();
+refreshGroups();
+</script>
+</body>
+</html>

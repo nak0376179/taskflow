@@ -11,8 +11,10 @@ Run:
     uvicorn server:app --port 8766
 """
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import MCPServer
@@ -134,6 +136,12 @@ app = FastAPI(title="TaskFlow multi-tenant PoC", lifespan=lifespan)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/")
+def playground():
+    """Browser playground for trying the tenancy/permission model by hand."""
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 
 app.mount("/", mcp.streamable_http_app(stateless_http=True, json_response=True))
