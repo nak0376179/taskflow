@@ -1,0 +1,19 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "taskflow-token",
+      "description": "TaskFlow のトークン (画面の「MCP 連携」で発行した tfp_...)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "taskflow": {
+      "type": "http",
+      "url": "http://localhost:8050/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:taskflow-token}"
+      }
+    }
+  }
+}

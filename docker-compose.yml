@@ -1,0 +1,20 @@
+# ローカルの AWS (Cognito + DynamoDB) — Floci エミュレータ。
+#
+# ホスト側は 4568 (他のプロジェクトの Floci 4566/4567 と同時に動かせるように)。
+# FLOCI_BASE_URL をホスト側の URL にしておくと、Cognito の JWT の iss が
+# http://localhost:4568/<pool> になり、バックエンドの検証と一致する。
+# データは名前付きボリュームに残る (消すときは `docker compose down -v`)。
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: taskflow-floci
+    ports:
+      - "4568:4566"
+    environment:
+      - FLOCI_BASE_URL=http://localhost:4568
+      - FLOCI_STORAGE_MODE=persistent
+    volumes:
+      - floci-data:/app/data
+
+volumes:
+  floci-data:

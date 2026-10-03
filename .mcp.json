@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "taskflow": {
+      "type": "http",
+      "url": "${TASKFLOW_MCP_URL:-http://localhost:8050/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${TASKFLOW_TOKEN}"
+      }
+    }
+  }
+}
