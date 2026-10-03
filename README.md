@@ -25,7 +25,7 @@ Floci 本体はコンテナでしか配られていない (イメージは amd64
 |---|---|
 | macOS | OrbStack (`brew install orbstack`)・Docker Desktop・Colima (`brew install colima docker && colima start`)・Podman (`podman machine start`) |
 | Linux | Docker Engine (ユーザーを docker グループに入れておく) または Podman |
-| Windows | WSL 3.0 以降の `wslc` (`wsl --update`)・Docker Desktop・WSL の Ubuntu の中の docker |
+| Windows | WSL 3.0 以降の `wslc` (`wsl --update`。Ubuntu などのディストロは要らない)・Docker Desktop |
 
 ```sh
 (cd backend && uv sync)
@@ -39,7 +39,7 @@ bash scripts/dev.sh
 
 初回起動時に、バックエンドが Floci の中にテーブル・ユーザープール・アプリクライアント・開発用ユーザー (`admin@example.com`) とサンプルのタスクを作る。Floci のデータは名前付きボリューム `taskflow-floci-data` に残る。
 
-Floci だけを操作するときは [scripts/floci.sh](scripts/floci.sh) を使う (dev.sh も中でこれを呼ぶ)。コンテナ環境は docker → podman → wslc → WSL の Ubuntu の docker の順に探す (`FLOCI_RUNTIME=podman` などで固定できる)。
+Floci だけを操作するときは [scripts/floci.sh](scripts/floci.sh) を使う (dev.sh も中でこれを呼ぶ)。コンテナ環境は docker → podman → wslc の順に探す (`FLOCI_RUNTIME=podman` などで固定できる)。
 
 ```sh
 bash scripts/floci.sh up       # 起動 (無ければ作る)

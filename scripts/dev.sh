@@ -19,12 +19,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Floci (コンテナ環境の選び方は scripts/floci.sh)。
-# WSL の Ubuntu の docker を使うときだけ、VM がアイドルで止まってコンテナが道連れにならないよう keep-alive を張る
-if [ "$(bash scripts/floci.sh runtime)" = wsl ]; then
-  wsl.exe -d "${WSL_DISTRO:-Ubuntu}" -- sleep infinity &
-  PIDS+=($!)
-fi
+# Floci (コンテナ環境の選び方は scripts/floci.sh。Windows は wslc、macOS は OrbStack / Docker Desktop)
 bash scripts/floci.sh up
 
 # --reload は付けない (Windows では reload の子プロセスが親を止めても残り、ポートを握り続けることがある)
