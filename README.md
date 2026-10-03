@@ -17,7 +17,7 @@ Claude Code / Copilot ─/mcp──┘          │
 
 ## 動かす (ローカル)
 
-必要なもの: Docker (Windows で docker が無ければ WSL の Ubuntu の docker を使う)、[uv](https://docs.astral.sh/uv/)、Node.js + pnpm
+必要なもの: コンテナを動かす環境 (docker。Windows では docker が無くても WSL 3.0 以降の `wslc` で動く)、[uv](https://docs.astral.sh/uv/)、Node.js + pnpm
 
 ```sh
 (cd backend && uv sync)
@@ -29,7 +29,9 @@ bash scripts/dev.sh
 - API: http://localhost:8050/docs
 - MCP: http://localhost:8050/mcp
 
-初回起動時に、バックエンドが Floci の中にテーブル・ユーザープール・アプリクライアント・開発用ユーザー (`admin@example.com`) とサンプルのタスクを作る。Floci のデータは docker のボリュームに残る (消すときは `docker compose down -v`)。
+初回起動時に、バックエンドが Floci の中にテーブル・ユーザープール・アプリクライアント・開発用ユーザー (`admin@example.com`) とサンプルのタスクを作る。Floci のデータはボリュームに残る (消すときは `docker compose down -v`、wslc なら `wslc remove taskflow-floci` の後に `wslc volume remove taskflow-floci-data`)。
+
+`scripts/dev.sh` は Floci を動かす環境を docker → wslc → WSL の Ubuntu の docker の順に探す。wslc はまだ compose に対応していないので、[docker-compose.yml](docker-compose.yml) と同じ設定を dev.sh の中で `wslc run` に渡している (設定を変えるときは両方直す)。
 
 ### admin / admin について
 
