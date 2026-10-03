@@ -15,10 +15,10 @@
 
 ## 注意
 
-- **Floci の JWT の `iss` は `FLOCI_BASE_URL` から作られる**。docker-compose.yml で `http://localhost:4568` にしてあり、backend は `AWS_ENDPOINT_URL/<pool>` を期待する。ポートを変えるときは両方直す (ずれると全リクエストが 401)
+- **Floci の JWT の `iss` は `FLOCI_BASE_URL` から作られる**。scripts/floci.sh で `http://localhost:4568` にしてあり、backend は `AWS_ENDPOINT_URL/<pool>` を期待する。ポートを変えるときは両方直す (ずれると全リクエストが 401)
 - Floci は `FLOCI_STORAGE_MODE=persistent` + ボリュームでデータを残している。プールを作り直すと sub が変わり、既存のタスクの持ち主が見つからなくなる (タスクは sub で持つ)
 - FastMCP は 4.x。`fastmcp.server.auth.TokenVerifier` を継承して `verify_token` で検証し、ツールの中では `get_access_token().claims["sub"]` で持ち主を取る
-- Floci の起動設定は docker-compose.yml と scripts/dev.sh の `wslc run` (wslc に compose が無いため) の 2 か所にある。ポートや環境変数を変えるときは両方直す
+- **Floci の起動設定は scripts/floci.sh の 1 か所だけ** (docker / podman / wslc / WSL の docker で同じ `run` を使う。wslc に compose が無いので compose ファイルは置かない)。macOS 標準の bash 3.2 でも動くように書く (連想配列・`${x,,}`・mapfile を使わない)
 - uvicorn に `--reload` を付けない (Windows で子プロセスがポートを握ったまま残ることがある)
 
 ## 検証

@@ -17,7 +17,15 @@ Claude Code / Copilot ─/mcp──┘          │
 
 ## 動かす (ローカル)
 
-必要なもの: コンテナを動かす環境 (docker。Windows では docker が無くても WSL 3.0 以降の `wslc` で動く)、[uv](https://docs.astral.sh/uv/)、Node.js + pnpm
+必要なもの: Floci を動かすコンテナ環境、[uv](https://docs.astral.sh/uv/)、Node.js + pnpm
+
+Floci 本体はコンテナでしか配られていない (イメージは amd64 / arm64 の両方あり、Apple Silicon でも動く) ので、OS ごとに次のどれかを用意する。
+
+| OS | コンテナ環境 |
+|---|---|
+| macOS | OrbStack (`brew install orbstack`)・Docker Desktop・Colima (`brew install colima docker && colima start`)・Podman (`podman machine start`) |
+| Linux | Docker Engine (ユーザーを docker グループに入れておく) または Podman |
+| Windows | WSL 3.0 以降の `wslc` (`wsl --update`)・Docker Desktop・WSL の Ubuntu の中の docker |
 
 ```sh
 (cd backend && uv sync)
@@ -29,9 +37,18 @@ bash scripts/dev.sh
 - API: http://localhost:8050/docs
 - MCP: http://localhost:8050/mcp
 
-初回起動時に、バックエンドが Floci の中にテーブル・ユーザープール・アプリクライアント・開発用ユーザー (`admin@example.com`) とサンプルのタスクを作る。Floci のデータはボリュームに残る (消すときは `docker compose down -v`、wslc なら `wslc remove taskflow-floci` の後に `wslc volume remove taskflow-floci-data`)。
+初回起動時に、バックエンドが Floci の中にテーブル・ユーザープール・アプリクライアント・開発用ユーザー (`admin@example.com`) とサンプルのタスクを作る。Floci のデータは名前付きボリューム `taskflow-floci-data` に残る。
 
-`scripts/dev.sh` は Floci を動かす環境を docker → wslc → WSL の Ubuntu の docker の順に探す。wslc はまだ compose に対応していないので、[docker-compose.yml](docker-compose.yml) と同じ設定を dev.sh の中で `wslc run` に渡している (設定を変えるときは両方直す)。
+Floci だけを操作するときは [scripts/floci.sh](scripts/floci.sh) を使う (dev.sh も中でこれを呼ぶ)。コンテナ環境は docker → podman → wslc → WSL の Ubuntu の docker の順に探す (`FLOCI_RUNTIME=podman` などで固定できる)。
+
+```sh
+bash scripts/floci.sh up       # 起動 (無ければ作る)
+bash scripts/floci.sh status   # どのコンテナ環境で動いているか
+bash scripts/floci.sh down     # 止める (データは残る)
+bash scripts/floci.sh reset    # コンテナとデータを消す
+```
+
+Floci のポートは `127.0.0.1` にだけ公開する (Linux の docker は既定だと LAN にも出てしまうため)。
 
 ### admin / admin について
 
